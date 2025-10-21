@@ -104,19 +104,19 @@
             <form id="form-apartamento" class="space-y-4">
                 <input type="hidden" id="apt-id">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Edificio</label>
+                    <label for="apt-edificio" class="block text-sm font-medium text-gray-700">Edificio</label>
                     <input type="text" id="apt-edificio" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Número</label>
+                    <label for="apt-numero" class="block text-sm font-medium text-gray-700">Número</label>
                     <input type="text" id="apt-numero" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Canon Mensual</label>
+                    <label for="apt-canon" class="block text-sm font-medium text-gray-700">Canon Mensual</label>
                     <input type="number" id="apt-canon" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" id="apt-estaOcupado" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                    <input type="checkbox" id="apt-estaOcupado" name="apt-estaOcupado" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
                     <label for="apt-estaOcupado" class="ml-2 block text-sm text-gray-900">Está Ocupado</label>
                 </div>
                 <div class="mt-6 flex justify-end space-x-3">
@@ -259,188 +259,6 @@
                             <div>
                                 <p class="font-bold text-lg">${pago.apartamentoInfo.edificio} - ${pago.apartamentoInfo.numero}</p>
                                 <p class="text-gray-600">${formatCurrency(pago.apartamentoInfo.canon)}</p>
-                                <p class="text-sm text-green-700 mt-1">Pagado con: ${pago.medioPago || 'N/A'}</p>
-                                <p class="text-xs text-gray-500">Fecha: ${fechaPago}</p>
-                            </div>
-                            <button data-pago-id="${pago.id}" class="btn-reversar-pago bg-yellow-500 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-600 text-sm">
-                                Reversar
-                            </button>
-                        </div>`;
-                    contentPagados.innerHTML += card;
-                }
-            });
-            
-            document.getElementById('count-pendientes').textContent = pendientesCount;
-            document.getElementById('count-pagados').textContent = pagadosCount;
-        }
-
-        async function loadApartamentos() {
-            const listaAptos = document.getElementById('lista-apartamentos');
-            listaAptos.innerHTML = '<div class="flex justify-center"><div class="loader"></div></div>';
-            const aptosSnapshot = await getDocs(collection(db, "apartamentos"));
-            listaAptos.innerHTML = '';
-            aptosSnapshot.forEach(doc => {
-                const apt = { id: doc.id, ...doc.data() };
-                const estadoClass = apt.estaOcupado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
-                const estadoText = apt.estaOcupado ? 'Ocupado' : 'Desocupado';
-                const card = `
-                    <div class="bg-white p-4 rounded-lg shadow flex justify-between items-center">
-                        <div>
-                            <p class="font-bold text-lg">${apt.edificio} - ${apt.numero}</p>
-                            <p class="text-gray-600">${formatCurrency(apt.canon)}</p>
-                            <span class="text-xs font-medium mr-2 px-2.5 py-0.5 rounded ${estadoClass}">${estadoText}</span>
-                        </div>
-                        <button data-apt-id="${apt.id}" class="btn-editar-apt bg-gray-200 text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-300 text-sm">
-                            Editar
-                        </button>
-                    </div>
-                `;
-                listaAptos.innerHTML += card;
-            });
-        }
-
-        // Manejo de eventos (clicks)
-        document.addEventListener('click', async (e) => {
-            const target = e.target.closest('button');
-            if (!target) return;
-
-            // Cambiar de vista principal (Pagos / Configuración)
-            if (target.matches('.view-button')) {
-                const view = target.dataset.view;
-                document.querySelectorAll('.view-button').forEach(btn => {
-                    btn.classList.remove('border-blue-500', 'text-blue-600');
-                    btn.classList.add('text-gray-500');
-                });
-                target.classList.add('border-blue-500', 'text-blue-600');
-                
-                document.querySelectorAll('.view-content').forEach(content => content.classList.add('hidden'));
-                document.getElementById(`view-${view}`).classList.remove('hidden');
-                document.getElementById('sub-tabs-pagos').classList.toggle('hidden', view !== 'pagos');
-
-                if (view === 'configuracion') {
-                    loadApartamentos();
-                }
-            }
-
-            // Cambiar de sub-pestaña (Pendientes / Pagados)
-            if (target.matches('.tab-button')) {
-                document.querySelectorAll('.tab-button').forEach(btn => {
-                    btn.classList.remove('border-blue-500', 'text-blue-600');
-                    btn.classList.add('text-gray-500');
-                });
-                target.classList.add('border-blue-500', 'text-blue-600');
-                
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-                document.getElementById(`content-${target.dataset.tab}`).classList.remove('hidden');
-            }
-
-            // Abrir modal de pago
-            if (e.target.matches('.btn-marcar-pagado')) {
-                selectedPagoId = e.target.dataset.pagoId;
-                document.getElementById('modal-apt-info').textContent = e.target.dataset.aptInfo;
-                document.getElementById('modal-apt-canon').textContent = formatCurrency(e.target.dataset.canon);
-                
-                const selectMedioPago = document.getElementById('medioPago');
-                selectMedioPago.innerHTML = MEDIOS_DE_PAGO.map(medio => `<option value="${medio}">${medio}</option>`).join('');
-                
-                modal.classList.remove('hidden');
-            }
-
-            // Botones del modal
-            if (target.id === 'btn-cancelar') {
-                modal.classList.add('hidden');
-                selectedPagoId = null;
-            }
-            if (target.id === 'btn-confirmar') {
-                const medioPagoSeleccionado = document.getElementById('medioPago').value;
-                if (selectedPagoId && medioPagoSeleccionado) {
-                    const pagoDocRef = doc(db, "pagos", selectedPagoId);
-                    await updateDoc(pagoDocRef, {
-                        estado: 'pagado',
-                        medioPago: medioPagoSeleccionado,
-                        fechaPago: Timestamp.now(),
-                    });
-                    modal.classList.add('hidden');
-                    updateView(currentDisplayDate); // Recargar vista actual
-                }
-            }
-
-            // Reversar un pago
-            if (target.matches('.btn-reversar-pago')) {
-                const pagoId = target.dataset.pagoId;
-                if (confirm('¿Estás seguro de que quieres reversar este pago y moverlo a pendientes?')) {
-                    const pagoDocRef = doc(db, "pagos", pagoId);
-                    await updateDoc(pagoDocRef, {
-                        estado: 'pendiente',
-                        medioPago: null,
-                        fechaPago: null
-                    });
-                    updateView(currentDisplayDate);
-                }
-            }
-
-            // Navegación de meses
-            if (target.id === 'prev-month') {
-                currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1);
-                updateView(currentDisplayDate);
-            }
-            if (target.id === 'next-month') {
-                currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1);
-                updateView(currentDisplayDate);
-            }
-
-            // Botones de Configuración de Apartamentos
-            if (target.id === 'btn-nuevo-apt') {
-                formApt.reset();
-                document.getElementById('apt-id').value = '';
-                document.getElementById('modal-apt-title').textContent = 'Nuevo Apartamento';
-                modalApt.classList.remove('hidden');
-            }
-            if (target.matches('.btn-editar-apt')) {
-                const aptId = target.dataset.aptId;
-                const aptRef = doc(db, "apartamentos", aptId);
-                const aptSnap = await getDoc(aptRef);
-                if (aptSnap.exists()) {
-                    const data = aptSnap.data();
-                    document.getElementById('apt-id').value = aptId;
-                    document.getElementById('apt-edificio').value = data.edificio || '';
-                    document.getElementById('apt-numero').value = data.numero || '';
-                    document.getElementById('apt-canon').value = data.canon || 0;
-                    document.getElementById('apt-estaOcupado').checked = data.estaOcupado || false;
-                    document.getElementById('modal-apt-title').textContent = 'Editar Apartamento';
-                    modalApt.classList.remove('hidden');
-                }
-            }
-            if (target.id === 'btn-cancelar-apt') {
-                modalApt.classList.add('hidden');
-            }
-        });
-
-        // Guardar apartamento (nuevo o editado)
-        formApt.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const aptId = document.getElementById('apt-id').value;
-            const data = {
-                edificio: document.getElementById('apt-edificio').value,
-                numero: document.getElementById('apt-numero').value,
-                canon: Number(document.getElementById('apt-canon').value),
-                estaOcupado: document.getElementById('apt-estaOcupado').checked,
-            };
-
-            if (aptId) { // Editar
-                await updateDoc(doc(db, "apartamentos", aptId), data);
-            } else { // Crear
-                await addDoc(collection(db, "apartamentos"), data);
-            }
-            modalApt.classList.add('hidden');
-            loadApartamentos();
-        });
-
-        // Iniciar la aplicación
-        updateView(currentDisplayDate);
-    </script>
-</body>
-</html>
                                 <p class="text-sm text-green-700 mt-1">Pagado con: ${pago.medioPago || 'N/A'}</p>
                                 <p class="text-xs text-gray-500">Fecha: ${fechaPago}</p>
                             </div>
