@@ -1,0 +1,12 @@
+quiero que me generes en esta carpeta apparriendos una app para un iphone, progresiva pwa con react y tailwind css y firestore y que me permita llevar el control de los arrdiendos que tengo que llevar todos los meses, para esto la app debe mostrarme en la parte superior el mes y año correspondiente, si se pasa a un nuevo mes se deben generar todos los aprtamentos de la base de datso y que esten ocupados en la base de datos como pendientes, y cuando se pague que me solicite el medio de pago que puede ser:
+
+Efectivo, Bancolombia Carlitos, Bancolombia Juank, Nequi Juank, Nequi carlitos, Neuqi Leo, Nequi Juliana
+
+
+los campos de los partamentos son los siguientes, y debes poder alimentar la base d edatos incial con el archivo de excele datos.xlsx:
+
+edificio, numero de apartamento, nombre arrendatario, cannon mensual,Fecha inicio, Fecha Final, Cedula, Correo electonico, Desocupado
+
+
+
+debe pode generar todos los meses los apartamanetos registrados y mostrarlos como pendintes en una pestaña y a medida que se van pagando los pasa a una pestaña de pagados, y todos los meses se generaran de nuevo todos los apartamentos pendientes si no estan generados para el mes y año correspondiente, adicioal a esto me gustaria que los archivos de base de datos y de la app se sincronizaran desde el iphone a mi google drive, debes generar todo para que corra localmente en el iphone o incluso en un android o pc tambien todo con html, css y demas
