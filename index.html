@@ -1,0 +1,343 @@
+        </main>
+    </div>
+
+    <main id="view-configuracion" class="max-w-4xl mx-auto hidden view-content">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-6 px-4" aria-label="Tabs">
+                <button data-config-tab="apartamentos" class="config-tab-button shrink-0 border-b-2 border-blue-500 px-1 py-4 text-sm font-medium text-blue-600">Apartamentos</button>
+                <button data-config-tab="edificios" class="config-tab-button shrink-0 border-b-2 border-transparent px-1 py-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">Edificios</button>
+                <button data-config-tab="mediosdepago" class="config-tab-button shrink-0 border-b-2 border-transparent px-1 py-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">Medios de Pago</button>
+            </nav>
+        </div>
+
+        <div id="config-content-apartamentos" class="config-tab-content p-4">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">Gestionar Apartamentos</h2><button id="btn-nuevo-apt" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Nuevo</button></div><div id="lista-apartamentos" class="space-y-3"></div>
+        </div>
+        <div id="config-content-edificios" class="config-tab-content p-4 hidden">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">Gestionar Edificios</h2><button id="btn-nuevo-edificio" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Nuevo</button></div><div id="lista-edificios" class="space-y-3"></div>
+        </div>
+        <div id="config-content-mediosdepago" class="config-tab-content p-4 hidden">
+            <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">Gestionar Medios de Pago</h2><button id="btn-nuevo-mediopago" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Nuevo</button></div><div id="lista-mediosdepago" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <!-- Modal para confirmar pago -->
+                <input type="hidden" id="apt-id">
+                <div>
+                    <label for="apt-edificio" class="block text-sm font-medium text-gray-700">Edificio</label>
+                    <select id="apt-edificio" name="apt-edificio" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required></select>
+                </div>
+                <div>
+                    <label for="apt-numero" class="block text-sm font-medium text-gray-700">Número</label>
+        </div>
+    </div>
+
+    <!-- Modal para Edificio -->
+    <div id="modal-edificio" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-30">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm m-4">
+            <h3 id="modal-edificio-title" class="text-lg font-bold mb-4">Nuevo Edificio</h3>
+            <form id="form-edificio">
+                <input type="hidden" id="edificio-id">
+                <div>
+                    <label for="edificio-nombre" class="block text-sm font-medium text-gray-700">Nombre del Edificio</label>
+                    <input type="text" id="edificio-nombre" name="edificio-nombre" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancelar-edificio" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400">Cancelar</button><button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Medio de Pago -->
+    <div id="modal-mediopago" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-30">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm m-4">
+            <h3 id="modal-mediopago-title" class="text-lg font-bold mb-4">Nuevo Medio de Pago</h3>
+            <form id="form-mediopago">
+                <input type="hidden" id="mediopago-id">
+                <div>
+                    <label for="mediopago-nombre" class="block text-sm font-medium text-gray-700">Nombre del Medio de Pago</label>
+                    <input type="text" id="mediopago-nombre" name="mediopago-nombre" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3"><button type="button" id="btn-cancelar-mediopago" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400">Cancelar</button><button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (no requiere instalación) -->
+    <script type="module">
+        // 1. Importar funciones de Firebase
+
+        // --- LÓGICA DE LA APLICACIÓN ---
+
+        let selectedPagoId = null;
+        let currentDisplayDate = new Date();
+
+        const modal = document.getElementById('modal-pago');
+        const modalApt = document.getElementById('modal-apartamento');
+        const formApt = document.getElementById('form-apartamento');
+        const modalEdificio = document.getElementById('modal-edificio');
+        const formEdificio = document.getElementById('form-edificio');
+        const modalMedioPago = document.getElementById('modal-mediopago');
+        const formMedioPago = document.getElementById('form-mediopago');
+
+        // Función para formatear moneda
+        const formatCurrency = (value) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
+            });
+        }
+
+        async function loadEdificios() {
+            const lista = document.getElementById('lista-edificios');
+            lista.innerHTML = '<div class="flex justify-center"><div class="loader"></div></div>';
+            const snapshot = await getDocs(collection(db, "edificios"));
+            lista.innerHTML = '';
+            snapshot.forEach(doc => {
+                const item = { id: doc.id, ...doc.data() };
+                const card = `
+                    <div class="bg-white p-4 rounded-lg shadow flex justify-between items-center">
+                        <p class="font-medium">${item.nombre}</p>
+                        <button data-id="${item.id}" data-nombre="${item.nombre}" class="btn-editar-edificio bg-gray-200 text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-300 text-sm">Editar</button>
+                    </div>
+                `;
+                lista.innerHTML += card;
+            });
+        }
+
+        async function loadMediosDePago() {
+            const lista = document.getElementById('lista-mediosdepago');
+            lista.innerHTML = '<div class="flex justify-center"><div class="loader"></div></div>';
+            const snapshot = await getDocs(collection(db, "mediopago"));
+            lista.innerHTML = '';
+            snapshot.forEach(doc => {
+                const item = { id: doc.id, ...doc.data() };
+                const card = `
+                    <div class="bg-white p-4 rounded-lg shadow flex justify-between items-center">
+                        <p class="font-medium">${item.medio}</p>
+                        <button data-id="${item.id}" data-nombre="${item.medio}" class="btn-editar-mediopago bg-gray-200 text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-300 text-sm">Editar</button>
+                    </div>
+                `;
+                lista.innerHTML += card;
+            });
+        }
+
+        async function populateSelect(selectElement, collectionName, valueField, textField) {
+            const snapshot = await getDocs(collection(db, collectionName));
+            selectElement.innerHTML = snapshot.docs.map(doc => `<option value="${doc.data()[valueField]}">${doc.data()[textField]}</option>`).join('');
+        }
+
+        // Manejo de eventos (clicks)
+        document.addEventListener('click', async (e) => {
+            const target = e.target.closest('button');
+                document.getElementById(`view-${view}`).classList.remove('hidden');
+                document.getElementById('sub-tabs-pagos').classList.toggle('hidden', view !== 'pagos');
+
+                if (view === 'configuracion') { // Cargar la primera pestaña de config por defecto
+                    document.querySelector('.config-tab-button[data-config-tab="apartamentos"]').click();
+                }
+            }
+
+            // Cambiar de sub-pestaña de Configuración
+            if (target.matches('.config-tab-button')) {
+                const tab = target.dataset.configTab;
+                document.querySelectorAll('.config-tab-button').forEach(btn => {
+                    btn.classList.remove('border-blue-500', 'text-blue-600');
+                    btn.classList.add('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
+                });
+                target.classList.add('border-blue-500', 'text-blue-600');
+                target.classList.remove('border-transparent', 'text-gray-500');
+
+                document.querySelectorAll('.config-tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`config-content-${tab}`).classList.remove('hidden');
+
+                if (tab === 'apartamentos') loadApartamentos();
+                if (tab === 'edificios') loadEdificios();
+                if (tab === 'mediosdepago') loadMediosDePago();
+            }
+
+            // Cambiar de sub-pestaña (Pendientes / Pagados)
+            if (target.matches('.tab-button')) {
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('border-blue-500', 'text-blue-600');
+                    btn.classList.add('text-gray-500');
+                });
+                target.classList.add('border-blue-500', 'text-blue-600');
+                
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`content-${target.dataset.tab}`).classList.remove('hidden');
+            }
+
+            // Abrir modal de pago
+            if (target.matches('.btn-marcar-pagado')) {
+                selectedPagoId = target.dataset.pagoId;
+                document.getElementById('modal-apt-info').textContent = target.dataset.aptInfo;
+                document.getElementById('modal-apt-canon').textContent = formatCurrency(target.dataset.canon);
+                
+                const selectMedioPago = document.getElementById('medioPago');
+                await populateSelect(selectMedioPago, 'mediopago', 'medio', 'medio');
+                
+                modal.classList.remove('hidden');
+            }
+
+            // Botones del modal de pago
+            if (target.id === 'btn-cancelar') {
+                modal.classList.add('hidden');
+                selectedPagoId = null;
+            }
+            if (target.id === 'btn-confirmar') {
+                const medioPagoSeleccionado = document.getElementById('medioPago').value;
+                if (selectedPagoId && medioPagoSeleccionado) {
+                    const pagoDocRef = doc(db, "pagos", selectedPagoId);
+                    await updateDoc(pagoDocRef, {
+                        estado: 'pagado',
+                        medioPago: medioPagoSeleccionado,
+                        fechaPago: Timestamp.now(),
+                    });
+                    modal.classList.add('hidden');
+                    updateView(currentDisplayDate); // Recargar vista actual
+                }
+            }
+
+            // Reversar un pago
+            if (target.matches('.btn-reversar-pago')) {
+                const pagoId = target.dataset.pagoId;
+                if (confirm('¿Estás seguro de que quieres reversar este pago y moverlo a pendientes?')) {
+                    const pagoDocRef = doc(db, "pagos", pagoId);
+                    await updateDoc(pagoDocRef, {
+                        estado: 'pendiente',
+                        medioPago: null,
+                        fechaPago: null
+                    });
+                    updateView(currentDisplayDate);
+                }
+            }
+
+            // Navegación de meses
+            if (target.id === 'prev-month') {
+                currentDisplayDate.setMonth(currentDisplayDate.getMonth() - 1);
+                updateView(currentDisplayDate);
+            }
+            if (target.id === 'next-month') {
+                currentDisplayDate.setMonth(currentDisplayDate.getMonth() + 1);
+                updateView(currentDisplayDate);
+            }
+
+            // --- Botones de Configuración ---
+
+            // Apartamentos
+            if (target.id === 'btn-nuevo-apt') {
+                formApt.reset();
+                document.getElementById('apt-id').value = '';
+                document.getElementById('modal-apt-title').textContent = 'Nuevo Apartamento';
+                await populateSelect(document.getElementById('apt-edificio'), 'edificios', 'nombre', 'nombre');
+                modalApt.classList.remove('hidden');
+            }
+            if (target.matches('.btn-editar-apt')) {
+                const aptId = target.dataset.aptId;
+                const aptRef = doc(db, "apartamentos", aptId);
+                const aptSnap = await getDoc(aptRef);
+                if (aptSnap.exists()) {
+                    const data = aptSnap.data();
+                    document.getElementById('apt-id').value = aptId;
+                    const selectEdificio = document.getElementById('apt-edificio');
+                    await populateSelect(selectEdificio, 'edificios', 'nombre', 'nombre');
+                    selectEdificio.value = data.edificio || '';
+                    document.getElementById('apt-numero').value = data.numero || '';
+                    document.getElementById('apt-canon').value = data.canon || 0;
+                    document.getElementById('apt-estaOcupado').checked = data.estaOcupado || false;
+                    document.getElementById('modal-apt-title').textContent = 'Editar Apartamento';
+                    modalApt.classList.remove('hidden');
+                }
+            }
+            if (target.id === 'btn-cancelar-apt') {
+                modalApt.classList.add('hidden');
+            }
+
+            // Edificios
+            if (target.id === 'btn-nuevo-edificio') {
+                formEdificio.reset();
+                document.getElementById('edificio-id').value = '';
+                document.getElementById('modal-edificio-title').textContent = 'Nuevo Edificio';
+                modalEdificio.classList.remove('hidden');
+            }
+            if (target.matches('.btn-editar-edificio')) {
+                document.getElementById('edificio-id').value = target.dataset.id;
+                document.getElementById('edificio-nombre').value = target.dataset.nombre;
+                document.getElementById('modal-edificio-title').textContent = 'Editar Edificio';
+                modalEdificio.classList.remove('hidden');
+            }
+            if (target.id === 'btn-cancelar-edificio') {
+                modalEdificio.classList.add('hidden');
+            }
+
+            // Medios de Pago
+            if (target.id === 'btn-nuevo-mediopago') {
+                formMedioPago.reset();
+                document.getElementById('mediopago-id').value = '';
+                document.getElementById('modal-mediopago-title').textContent = 'Nuevo Medio de Pago';
+                modalMedioPago.classList.remove('hidden');
+            }
+            if (target.matches('.btn-editar-mediopago')) {
+                document.getElementById('mediopago-id').value = target.dataset.id;
+                document.getElementById('mediopago-nombre').value = target.dataset.nombre;
+                document.getElementById('modal-mediopago-title').textContent = 'Editar Medio de Pago';
+                modalMedioPago.classList.remove('hidden');
+            }
+            if (target.id === 'btn-cancelar-mediopago') {
+                modalMedioPago.classList.add('hidden');
+            }
+        });
+
+        // --- Eventos de Submit de Formularios ---
+
+        // Guardar apartamento
+        formApt.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const aptId = document.getElementById('apt-id').value;
+            const data = {
+                edificio: document.getElementById('apt-edificio').value,
+                numero: document.getElementById('apt-numero').value,
+                canon: Number(document.getElementById('apt-canon').value),
+                estaOcupado: document.getElementById('apt-estaOcupado').checked,
+            };
+
+            if (aptId) {
+                await updateDoc(doc(db, "apartamentos", aptId), data);
+            } else {
+                await addDoc(collection(db, "apartamentos"), data);
+            }
+            modalApt.classList.add('hidden');
+            loadApartamentos();
+        });
+
+        // Guardar edificio
+        formEdificio.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edificio-id').value;
+            const data = { nombre: document.getElementById('edificio-nombre').value };
+            if (id) {
+                await updateDoc(doc(db, "edificios", id), data);
+            } else {
+                await addDoc(collection(db, "edificios"), data);
+            }
+            modalEdificio.classList.add('hidden');
+            loadEdificios();
+        });
+
+        // Guardar medio de pago
+        formMedioPago.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('mediopago-id').value;
+            const data = { medio: document.getElementById('mediopago-nombre').value };
+            if (id) {
+                await updateDoc(doc(db, "mediopago", id), data);
+            } else {
+                await addDoc(collection(db, "mediopago"), data);
+            }
+            modalMedioPago.classList.add('hidden');
+            loadMediosDePago();
+        });
+
+        // Iniciar la aplicación
+        updateView(currentDisplayDate);
+    </script>
+</body>
+</html>
+
