@@ -371,11 +371,13 @@
         }
 
         async function fetchFromGitHub(path) {
-            const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${path}`;
+            // Añadimos un timestamp para evitar que el navegador use una respuesta vieja (caché)
+            const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${path}?t=${Date.now()}`;
             try {
                 const res = await fetch(url, {
+                    method: 'GET',
                     headers: { 
-                        'Authorization': `Bearer ${config.token}`,
+                        'Authorization': `token ${config.token}`,
                         'Accept': 'application/vnd.github.v3+json',
                         'Cache-Control': 'no-cache' 
                     }
@@ -387,11 +389,16 @@
                 }
                 const data = await res.json();
                 // Limpiar posibles saltos de línea del base64 antes de decodificar
-                const cleanContent = data.content.replace(/\s/g, '');
-                return JSON.parse(decodeURIComponent(escape(atob(cleanContent))));
+                const cleanContent = data.content.replace(/[\r\n\s]/gm, '');
+                
+                // Decodificación robusta para UTF-8 (tildes, eñes, etc)
+                const binaryString = atob(cleanContent);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+                return JSON.parse(new TextDecoder().decode(bytes));
             } catch (e) {
-                console.error("Fetch error:", e);
-                throw new Error("No se pudo conectar con GitHub. Verifica tu conexión y los datos de configuración.");
+                console.error("Detalle del error en GitHub:", e, "URL intentada:", url);
+                throw new Error(`Error de conexión. Revisa que el usuario '${config.user}' y el repo '${config.repo}' sean exactos.`);
             }
         }
 
