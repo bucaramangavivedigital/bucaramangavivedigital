@@ -332,19 +332,21 @@
         }
 
         function saveConfig() {
-            config.user = document.getElementById('ghUser').value;
-            config.repo = document.getElementById('ghRepo').value;
-            config.token = document.getElementById('ghToken').value;
+            config.user = document.getElementById('ghUser').value.trim();
+            config.repo = document.getElementById('ghRepo').value.trim();
+            config.token = document.getElementById('ghToken').value.trim();
             localStorage.setItem('ghConfig', JSON.stringify(config));
-            if (config.token) {
+            if (config.token && config.user && config.repo) {
                 document.getElementById('syncBtn').classList.remove('hidden');
                 document.getElementById('loadBtn').classList.remove('hidden');
+                alert('Configuración guardada localmente.');
+            } else {
+                alert('Por favor completa todos los campos (Usuario, Repo y Token).');
             }
-            alert('Configuración guardada localmente.');
         }
 
         async function loadFromGitHub() {
-            if (!config.token || !config.repo) return alert('Configura GitHub primero.');
+            if (!config.token || !config.repo || !config.user) return alert('Configura GitHub primero (Usuario, Repo y Token).');
             const status = document.getElementById('syncStatus');
             status.className = "mb-4 p-3 rounded-lg text-center text-sm font-bold bg-blue-100 text-blue-700 block";
             status.innerText = "Descargando datos desde GitHub...";
@@ -370,16 +372,31 @@
 
         async function fetchFromGitHub(path) {
             const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${path}`;
-            const res = await fetch(url, {
-                headers: { 'Authorization': `token ${config.token}`, 'Cache-Control': 'no-cache' }
-            });
-            if (!res.ok) return null;
-            const data = await res.json();
-            return JSON.parse(decodeURIComponent(escape(atob(data.content))));
+            try {
+                const res = await fetch(url, {
+                    headers: { 
+                        'Authorization': `Bearer ${config.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Cache-Control': 'no-cache' 
+                    }
+                });
+                if (res.status === 404) return null; // El archivo no existe aún
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.message || `Error ${res.status}`);
+                }
+                const data = await res.json();
+                // Limpiar posibles saltos de línea del base64 antes de decodificar
+                const cleanContent = data.content.replace(/\s/g, '');
+                return JSON.parse(decodeURIComponent(escape(atob(cleanContent))));
+            } catch (e) {
+                console.error("Fetch error:", e);
+                throw new Error("No se pudo conectar con GitHub. Verifica tu conexión y los datos de configuración.");
+            }
         }
 
         async function syncWithGitHub() {
-            if (!config.token || !config.repo) return alert('Configura GitHub primero.');
+            if (!config.token || !config.repo || !config.user) return alert('Configura GitHub primero.');
             
             const syncBtn = document.getElementById('syncBtn');
             const status = document.getElementById('syncStatus');
@@ -413,7 +430,7 @@
             let sha = "";
             try {
                 const res = await fetch(url, {
-                    headers: { 'Authorization': `token ${config.token}` }
+                    headers: { 'Authorization': `Bearer ${config.token}` }
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -430,7 +447,8 @@
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `token ${config.token}`,
+                    'Authorization': `Bearer ${config.token}`,
+                    'Accept': 'application/vnd.github.v3+json',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(body)
