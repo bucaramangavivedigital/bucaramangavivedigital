@@ -53,8 +53,11 @@
                 <input type="password" id="ghToken" placeholder="Personal Access Token (PAT)" class="p-2 rounded border border-blue-200 text-sm">
                 <div class="flex gap-2">
                     <button onclick="saveConfig()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex-1">Conectar</button>
+                    <button onclick="loadFromGitHub()" id="loadBtn" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex-1 hidden">
+                        <i class="fas fa-cloud-download-alt"></i> Cargar Datos
+                    </button>
                     <button onclick="syncWithGitHub()" id="syncBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex-1 hidden">
-                        <i class="fas fa-sync"></i> Sincronizar
+                        <i class="fas fa-cloud-upload-alt"></i> Subir Datos
                     </button>
                 </div>
             </div>
@@ -175,7 +178,10 @@
                 document.getElementById('ghUser').value = config.user;
                 document.getElementById('ghRepo').value = config.repo;
                 document.getElementById('ghToken').value = config.token;
-                if (config.token) document.getElementById('syncBtn').classList.remove('hidden');
+                if (config.token) {
+                    document.getElementById('syncBtn').classList.remove('hidden');
+                    document.getElementById('loadBtn').classList.remove('hidden');
+                }
             }
 
             // Establecer mes actual por defecto
@@ -330,8 +336,46 @@
             config.repo = document.getElementById('ghRepo').value;
             config.token = document.getElementById('ghToken').value;
             localStorage.setItem('ghConfig', JSON.stringify(config));
-            if (config.token) document.getElementById('syncBtn').classList.remove('hidden');
+            if (config.token) {
+                document.getElementById('syncBtn').classList.remove('hidden');
+                document.getElementById('loadBtn').classList.remove('hidden');
+            }
             alert('Configuración guardada localmente.');
+        }
+
+        async function loadFromGitHub() {
+            if (!config.token || !config.repo) return alert('Configura GitHub primero.');
+            const status = document.getElementById('syncStatus');
+            status.className = "mb-4 p-3 rounded-lg text-center text-sm font-bold bg-blue-100 text-blue-700 block";
+            status.innerText = "Descargando datos desde GitHub...";
+
+            try {
+                // Intentamos obtener los dos archivos
+                const apts = await fetchFromGitHub('data/apartamentos.json');
+                const pays = await fetchFromGitHub('data/movimientos.json');
+
+                if (apts) db.apartments = apts;
+                if (pays) db.payments = pays;
+
+                save(); // Guarda en LocalStorage y renderiza
+                status.className = "mb-4 p-3 rounded-lg text-center text-sm font-bold bg-green-100 text-green-700 block";
+                status.innerText = "¡Datos sincronizados desde la nube con éxito!";
+            } catch (err) {
+                status.className = "mb-4 p-3 rounded-lg text-center text-sm font-bold bg-red-100 text-red-700 block";
+                status.innerText = "Error al descargar: " + err.message;
+            } finally {
+                setTimeout(() => status.classList.add('hidden'), 5000);
+            }
+        }
+
+        async function fetchFromGitHub(path) {
+            const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${path}`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': `token ${config.token}`, 'Cache-Control': 'no-cache' }
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return JSON.parse(decodeURIComponent(escape(atob(data.content))));
         }
 
         async function syncWithGitHub() {
